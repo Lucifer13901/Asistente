@@ -71,12 +71,12 @@ def escuchar():
         try:
             print("Reconociendo...")
             comando = r.recognize_google(audio, language='es-ES')
-            print(f"Has dicho: {comando}")
-            hablar(f"Has dicho: {comando}")
+            print(f"Marcos has dicho: {comando}")
+            hablar(f"Marcos has dicho: {comando}")
             return comando.lower().strip()
         except sr.UnknownValueError:
-            print("No te he entendido, por favor repite.")
-            hablar("No te he entendido, por favor repite.")
+            print("No te he entendido marcos, por favor repite.")
+            hablar("No te he entendido marcos, por favor repite.")
             return ""
         except sr.RequestError:
             print("Error al conectar con el servicio de reconocimiento.")
