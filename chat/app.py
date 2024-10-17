@@ -1,4 +1,4 @@
-import tkinter as tk  
+import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import speech_recognition as sr
@@ -12,10 +12,9 @@ import threading
 import os
 import platform
 
-openai.api_key = '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'
+openai.api_key = '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'
 
 engine = pyttsx3.init()
-
 voices = engine.getProperty('voices')
 spanish_voices = [voice for voice in voices if 'es' in voice.languages]
 if spanish_voices:
@@ -71,12 +70,12 @@ def escuchar():
         try:
             print("Reconociendo...")
             comando = r.recognize_google(audio, language='es-ES')
-            print(f"Marcos has dicho: {comando}")
-            hablar(f"Marcos has dicho: {comando}")
+            print(f"Has dicho: {comando}")
+            hablar(f"Has dicho: {comando}")
             return comando.lower().strip()
         except sr.UnknownValueError:
-            print("No te he entendido marcos, por favor repite.")
-            hablar("No te he entendido marcos, por favor repite.")
+            print("No te he entendido, por favor repite.")
+            hablar("No te he entendido, por favor repite.")
             return ""
         except sr.RequestError:
             print("Error al conectar con el servicio de reconocimiento.")
@@ -92,7 +91,7 @@ def escribir_en_chat(texto):
 def preguntar_a_chatgpt(pregunta):
     try:
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            model="gpt-3.5-turbo",
             prompt=pregunta,
             max_tokens=150
         )
@@ -139,36 +138,56 @@ def reproducir_musica(comando):
 
 def crear_recordatorio(comando):
     try:
-        tiempo = re.search(r"en (\d+) minutos", comando)
+        tiempo = re.search(r"en (\d+)\s?(minutos|minuto|horas|hora)", comando)
         if tiempo:
-            minutos = int(tiempo.group(1))
-            mensaje = comando.replace(f"en {minutos} minutos", "").strip()
-            hablar(f"Te recordaré: {mensaje} en {minutos} minutos.")
-            escribir_en_chat(f"Recordatorio: {mensaje} en {minutos} minutos.")
-            time.sleep(minutos * 60)
-            hablar(f"Es hora de: {mensaje}")
-            escribir_en_chat(f"Es hora de: {mensaje}")
+            cantidad = int(tiempo.group(1))
+            unidad = tiempo.group(2)
+            if "hora" in unidad:
+                minutos = cantidad * 60
+            else:
+                minutos = cantidad 
+
+            mensaje = re.sub(r"recordatorio en \d+\s?(minutos|minuto|horas|hora)", "", comando).strip()
+
+            if mensaje:
+                hablar(f"Te recordaré: {mensaje} en {cantidad} {unidad}.")
+                escribir_en_chat(f"Recordatorio: {mensaje} en {cantidad} {unidad}.")
+                time.sleep(minutos * 60)
+                hablar(f"Es hora de: {mensaje}")
+                escribir_en_chat(f"Es hora de: {mensaje}")
+            else:
+                hablar("No especificaste un mensaje para el recordatorio.")
+                escribir_en_chat("Error: No especificaste un mensaje.")
         else:
-            hablar("No pude entender el recordatorio. Usa el formato 'recordatorio en X minutos'.")
-            escribir_en_chat("No pude entender el recordatorio.")
+            hablar("No pude entender el tiempo del recordatorio. Usa el formato 'recordatorio en X minutos' o 'X horas'.")
+            escribir_en_chat("Error: No pude entender el tiempo.")
     except Exception as e:
         print(f"Error al crear el recordatorio: {e}")
         hablar("Hubo un error al crear el recordatorio.")
+        escribir_en_chat("Error al crear el recordatorio.")
+
 
 def abrir_programa(programa):
     try:
-        # Comprobación multiplataforma
         sistema = platform.system().lower()
+        
         if sistema == 'windows':
-            os.system(f"start {programa}")
+            if 'chrome' in programa.lower():
+                os.system("start chrome")
+            else:
+                os.system(f"start {programa}")
+        
         elif sistema == 'linux':
             os.system(f"xdg-open {programa}")
-        elif sistema == 'darwin':  # macOS
+       
+        elif sistema == 'darwin':
             os.system(f"open {programa}")
+        
         else:
             hablar("No puedo abrir programas en este sistema operativo.")
             escribir_en_chat("No puedo abrir programas en este sistema operativo.")
             return
+        
         hablar(f"Abriendo {programa}.")
         escribir_en_chat(f"Abriendo {programa}.")
         response_label.config(text=f"Comando: Abriendo {programa}")
@@ -185,28 +204,30 @@ def gestionar_tareas(comando):
     elif "recordatorio" in comando:
         crear_recordatorio(comando)
     elif "abrir" in comando:
-        abrir_programa(comando.replace("abrir", "").strip())
-    elif "wikipedia" in comando:
+        abrir_programa(comando)
+    elif "quién es" in comando or "qué es" in comando:
         buscar_en_wikipedia(comando)
     else:
         preguntar_a_chatgpt(comando)
 
-def iniciar_comando():
-    comando = command_entry.get().strip().lower()
-    if comando:
-        gestionar_tareas(comando)
-    else:
-        hablar("No has dado ningún comando. Por favor, intenta de nuevo.")
+def escuchar_en_fondo():
+    while True:
+        comando = escuchar()
+        if comando:
+            gestionar_tareas(comando)
+        time.sleep(1)
 
-def escuchar_comando_voz():
-    comando = escuchar()
-    if comando:
-        gestionar_tareas(comando)
+def procesar_texto_escrito():
+    texto = command_entry.get().lower()
+    if texto:
+        command_entry.delete(0, tk.END)
+        gestionar_tareas(texto)
 
-boton_escuchar = ttk.Button(root, text="Escuchar", command=lambda: threading.Thread(target=escuchar_comando_voz).start())
-boton_escuchar.pack(pady=10)
+t = threading.Thread(target=escuchar_en_fondo)
+t.daemon = True
+t.start()
 
-boton_enviar = ttk.Button(root, text="Enviar", command=iniciar_comando)
-boton_enviar.pack(pady=10)
+enviar_button = ttk.Button(root, text="Enviar", command=procesar_texto_escrito)
+enviar_button.pack(pady=10)
 
 root.mainloop()
