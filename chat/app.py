@@ -8,6 +8,9 @@ import tkinter as tk
 from tkinter import ttk
 import google.generativeai as gai
 
+# Configura la clave de API al inicio
+gai.configure(api_key="TU_API_KEY")  # Reemplaza "TU_API_KEY" con tu clave de API real
+
 # Función para hablar (Simulando la función de texto a voz)  
 def hablar(texto):  
     os.system(f'say "{texto}"')  # Cambia esto según tu sistema operativo  
@@ -19,9 +22,9 @@ def escribir_en_chat(mensaje):
 # Función para preguntar a Gemini  
 def preguntar_a_gemini(pregunta):  
     try:  
-        response = gemini_api.ask(pregunta)  # Aquí debe ir tu llamada real a la API de Gemini  
+        response = gai.ask(pregunta)  # Llamada a la API de Gemini  
         respuesta = response.get("respuesta", "No se obtuvo respuesta.")  
-        
+
         print(f"Respuesta de Gemini: {respuesta}")  
         hablar(respuesta)  
         escribir_en_chat(respuesta)  
